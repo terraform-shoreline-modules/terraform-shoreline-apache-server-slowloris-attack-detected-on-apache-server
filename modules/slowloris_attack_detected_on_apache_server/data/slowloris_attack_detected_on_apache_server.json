@@ -1,0 +1,166 @@
+{
+  "name": "slowloris_attack_detected_on_apache_server",
+  "description": "The Slowloris Attack is a type of Denial of Service (DoS) attack that exploits a vulnerability in the Apache web server. It works by sending HTTP requests to the server and keeping those connections open for as long as possible, thereby using up all the available resources of the server and rendering it unresponsive to legitimate requests. As a result, the server becomes slow or unresponsive, causing downtime for the affected website or service. This type of attack can be detected and mitigated by implementing specific security measures and tools.",
+  "params": [
+    {
+      "name": "IP_ADDRESS",
+      "value": ""
+    },
+    {
+      "name": "APACHE_PORT",
+      "value": ""
+    },
+    {
+      "name": "PATH_TO_APACHE_CONF_FILE",
+      "value": ""
+    },
+    {
+      "name": "INTERFACE",
+      "value": ""
+    },
+    {
+      "name": "MAX_CONNECTIONS_PER_IP",
+      "value": ""
+    },
+    {
+      "name": "HOST_NAME",
+      "value": ""
+    },
+    {
+      "name": "K8S_CLUSTER_NAME",
+      "value": ""
+    },
+    {
+      "name": "NAMESPACE",
+      "value": ""
+    }
+  ],
+  "cells": [
+    {
+      "name": "cell_1",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Slowloris Attack Detected on Apache server.\nThe Slowloris Attack is a type of Denial of Service (DoS) attack that exploits a vulnerability in the Apache web server. It works by sending HTTP requests to the server and keeping those connections open for as long as possible, thereby using up all the available resources of the server and rendering it unresponsive to legitimate requests. As a result, the server becomes slow or unresponsive, causing downtime for the affected website or service. This type of attack can be detected and mitigated by implementing specific security measures and tools."
+    },
+    {
+      "name": "cell_2",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Check if Apache is running"
+    },
+    {
+      "name": "cell_3",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `systemctl status apache2`"
+    },
+    {
+      "name": "cell_4",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Check Apache logs for any suspicious activity"
+    },
+    {
+      "name": "cell_5",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `tail -f /var/log/apache2/access.log`"
+    },
+    {
+      "name": "cell_6",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Check active connections to the server"
+    },
+    {
+      "name": "cell_7",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `netstat -anp | grep ${APACHE_PORT}`"
+    },
+    {
+      "name": "cell_8",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Check the number of connections per IP address"
+    },
+    {
+      "name": "cell_9",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `netstat -anp | grep ${APACHE_PORT} | awk '{print $5}' | cut -d: -f1 | sort | uniq -c | sort -n`"
+    },
+    {
+      "name": "cell_10",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Check Apache server status for any suspicious activity"
+    },
+    {
+      "name": "cell_11",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `curl -I http://localhost/server-status`"
+    },
+    {
+      "name": "cell_12",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Check Apache server configuration for any vulnerabilities"
+    },
+    {
+      "name": "cell_13",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `apache2ctl -t -D DUMP_MODULES`"
+    },
+    {
+      "name": "cell_14",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Check for any active Slowloris attacks"
+    },
+    {
+      "name": "cell_15",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `tcpdump -i ${INTERFACE} 'tcp[20:2] == 0x4745'`"
+    },
+    {
+      "name": "cell_16",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Block IPs with suspicious activity"
+    },
+    {
+      "name": "cell_17",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `iptables -A INPUT -s ${IP_ADDRESS} -j DROP`"
+    },
+    {
+      "name": "cell_18",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Configure the Apache server to limit the number of connections from a single IP address."
+    },
+    {
+      "name": "cell_19",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "host | host_name=$HOST_NAME | invoke_apache_max_connections($PATH_TO_APACHE_CONF_FILE, $MAX_CONNECTIONS_PER_IP)"
+    },
+    {
+      "name": "cell_20",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Install a rate-limiting module on the server to prevent excessive requests from any single IP address."
+    },
+    {
+      "name": "cell_21",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "host | host_name=$HOST_NAME | invoke_install_mod_evasive()"
+    }
+  ]
+}
